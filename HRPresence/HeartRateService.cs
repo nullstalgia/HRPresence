@@ -41,19 +41,23 @@ namespace HRPresence
         bool IsDisposed { get; }
 
         event HeartRateService.HeartRateUpdateEventHandler HeartRateUpdated;
+
         void InitiateDefault();
+
         void Cleanup();
     }
 
-    static class MemoryStreamExtensions
+    internal static class MemoryStreamExtensions
     {
         public static ushort ReadUInt16(this MemoryStream s)
             => (ushort)(s.ReadByte() | (s.ReadByte() << 8));
     }
+
     internal class HeartRateService : IHeartRateService
     {
         // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.characteristic.heart_rate_measurement.xml
         private const int _heartRateMeasurementCharacteristicId = 0x2A37;
+
         private static readonly Guid _heartRateMeasurementCharacteristicUuid =
             BluetoothUuidHelper.FromShortId(_heartRateMeasurementCharacteristicId);
 
@@ -64,9 +68,11 @@ namespace HRPresence
         private readonly object _disposeSync = new object();
 
         public event HeartRateUpdateEventHandler HeartRateUpdated;
+
         public delegate void HeartRateUpdateEventHandler(HeartRateReading reading);
 
-        public void InitiateDefault() {
+        public void InitiateDefault()
+        {
             var heartrateSelector = GattDeviceService
                 .GetDeviceSelectorFromUuid(GattServiceUuids.HeartRate);
 
@@ -77,7 +83,8 @@ namespace HRPresence
 
             var device = devices.FirstOrDefault();
 
-            if (device == null) {
+            if (device == null)
+            {
                 throw new ArgumentNullException(
                     nameof(device),
                     "Unable to locate heart rate device.");
@@ -85,7 +92,8 @@ namespace HRPresence
 
             GattDeviceService service;
 
-            lock (_disposeSync) {
+            lock (_disposeSync)
+            {
                 if (IsDisposed)
                     throw new ObjectDisposedException(GetType().Name);
 
@@ -98,7 +106,8 @@ namespace HRPresence
                 _service = service;
             }
 
-            if (service == null) {
+            if (service == null)
+            {
                 throw new ArgumentOutOfRangeException(
                     $"Unable to get service to {device.Name} ({device.Id}). Is the device inuse by another program? The Bluetooth adaptor may need to be turned off and on again.");
             }
@@ -110,7 +119,8 @@ namespace HRPresence
                 .Characteristics
                 .FirstOrDefault();
 
-            if (heartrate == null) {
+            if (heartrate == null)
+            {
                 throw new ArgumentOutOfRangeException(
                     $"Unable to locate heart rate measurement on device {device.Name} ({device.Id}).");
             }
@@ -126,7 +136,8 @@ namespace HRPresence
             Debug.WriteLine($"Started {status}");
         }
 
-        public void HeartRate_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args) {
+        public void HeartRate_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
+        {
             var buffer = args.CharacteristicValue;
             if (buffer.Length == 0)
                 return;
@@ -134,17 +145,21 @@ namespace HRPresence
             var byteBuffer = Interlocked.Exchange(ref _buffer, null)
                 ?? new byte[buffer.Length];
 
-            if (byteBuffer.Length != buffer.Length) {
+            if (byteBuffer.Length != buffer.Length)
+            {
                 byteBuffer = new byte[buffer.Length];
             }
 
-            try {
-                using (var reader = DataReader.FromBuffer(buffer)) {
+            try
+            {
+                using (var reader = DataReader.FromBuffer(buffer))
+                {
                     reader.ReadBytes(byteBuffer);
 
                     var readingValue = ReadBuffer(byteBuffer, (int)buffer.Length);
 
-                    if (readingValue == null) {
+                    if (readingValue == null)
+                    {
                         Debug.WriteLine($"Buffer was too small. Got {buffer.Length}.");
                         return;
                     }
@@ -154,12 +169,15 @@ namespace HRPresence
 
                     HeartRateUpdated?.Invoke(reading);
                 }
-            } finally {
+            }
+            finally
+            {
                 Volatile.Write(ref _buffer, byteBuffer);
             }
         }
 
-        internal static HeartRateReading? ReadBuffer(byte[] buffer, int length) {
+        internal static HeartRateReading? ReadBuffer(byte[] buffer, int length)
+        {
             if (length == 0)
                 return null;
 
@@ -174,7 +192,8 @@ namespace HRPresence
             if (buffer.Length < minLength)
                 return null;
 
-            var reading = new HeartRateReading {
+            var reading = new HeartRateReading
+            {
                 Flags = flags,
                 Status = contactSensor,
                 BeatsPerMinute = isshort ? ms.ReadUInt16() : ms.ReadByte()
@@ -183,10 +202,12 @@ namespace HRPresence
             if (hasEnergyExpended)
                 reading.EnergyExpended = ms.ReadUInt16();
 
-            if (hasRRInterval) {
+            if (hasRRInterval)
+            {
                 var rrvalueCount = (buffer.Length - ms.Position) / sizeof(ushort);
                 var rrvalues = new int[rrvalueCount];
-                for (var i = 0; i < rrvalueCount; ++i) {
+                for (var i = 0; i < rrvalueCount; ++i)
+                {
                     rrvalues[i] = ms.ReadUInt16();
                 }
 
@@ -196,13 +217,16 @@ namespace HRPresence
             return reading;
         }
 
-        public void Cleanup() {
+        public void Cleanup()
+        {
             var service = Interlocked.Exchange(ref _service, null);
             service?.Dispose();
         }
 
-        public void Dispose() {
-            lock (_disposeSync) {
+        public void Dispose()
+        {
+            lock (_disposeSync)
+            {
                 IsDisposed = true;
                 Cleanup();
             }
