@@ -27,6 +27,9 @@ namespace HRPresence
         private static bool isHeartBeat;
         private static int currentHR;
 
+        private static int peakBPM = 0;
+        private static DateTime peakTime;
+
         private static void Main()
         {
             var config = new Config();
@@ -52,8 +55,16 @@ namespace HRPresence
                 reading = heart;
                 currentHR = heart.BeatsPerMinute;
 
-                Console.Write($"{DateTime.Now}\n{currentHR} BPM\n");
+                if (currentHR > peakBPM)
+                {
+                    peakBPM = currentHR;
+                    peakTime = DateTime.Now;
+                }
+
                 Console.SetCursorPosition(0, 0);
+                Console.WriteLine($"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}".PadRight(32));
+                Console.WriteLine($"{currentHR} BPM".PadRight(32));
+                Console.WriteLine($"Peak: {peakBPM} BPM at {peakTime.ToShortTimeString()}".PadRight(32));
 
                 lastUpdate = DateTime.Now;
                 File.WriteAllText("rate.txt", $"{currentHR}");
@@ -62,6 +73,7 @@ namespace HRPresence
                 if (!isHeartBeat)
                     HeartBeat();
             };
+
 
             while (true)
             {
@@ -73,14 +85,15 @@ namespace HRPresence
 
                 if (DateTime.Now - lastUpdate > TimeSpan.FromSeconds(config.TimeOutInterval))
                 {
-                    Console.Write("Connecting...");
                     Console.SetCursorPosition(0, 0);
+                    Console.WriteLine("Connecting...".PadRight(32));
                     while (true)
                     {
                         try
                         {
                             heartrate.InitiateDefault();
                             isHRConnected = true;
+                            Console.WriteLine("Connected!");
                             break;
                         }
                         catch (Exception e)
@@ -89,7 +102,7 @@ namespace HRPresence
                             osc.Clear();
                             Console.Write($"Failure while initiating heartrate service, retrying in {config.RestartDelay} seconds:\n");
                             Debug.WriteLine(e);
-                            Console.SetCursorPosition(0, 0);
+                            //Console.SetCursorPosition(0, 0);
                             Thread.Sleep((int)(config.RestartDelay * 1000));
                         }
                     }

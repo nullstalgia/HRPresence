@@ -16,8 +16,8 @@ namespace HRPresence
 
         public bool Update(int heartrate)
         {
-            // Maps the heart rate from [0;255] to [-1;+1]
-            var floatHR = (heartrate * 0.0078125f) - 1.0f;
+            // Maps the heart rate from [0;255] to [0;+1]
+            var floatHR = (heartrate / 255.0f);
             var data = new (string, object)[] {
                 ("isHRConnected", Program.isHRConnected),
                 ("HR"        , heartrate),
