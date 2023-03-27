@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using OscCore;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
@@ -14,7 +15,7 @@ namespace HRPresence
             udp.Connect(ip, port);
         }
 
-        public bool Update(int heartrate)
+        public bool Update(int heartrate, int rrInterval)
         {
             // Maps the heart rate from [0;255] to [0;+1]
             var floatHR = (heartrate / 255.0f);
@@ -24,7 +25,8 @@ namespace HRPresence
                 ("onesHR"    , (heartrate      ) % 10),
                 ("tensHR"    , (heartrate / 10 ) % 10),
                 ("hundredsHR", (heartrate / 100) % 10),
-                ("floatHR"   , floatHR)
+                ("floatHR"   , floatHR),
+                ("RRInterval", rrInterval)
             };
 
             try
@@ -51,7 +53,8 @@ namespace HRPresence
                 ("tensHR"    , 0),
                 ("hundredsHR", 0),
                 ("floatHR"   , -1f),
-                ("isHRBeat"  , false)
+                ("isHRBeat"  , false),
+                ("RRInterval", 0)
             };
             try
             {
