@@ -68,7 +68,14 @@ namespace HRPresence
                 Console.WriteLine($"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}".PadRight(32));
                 Console.WriteLine($"{currentHR} BPM".PadRight(32));
                 Console.WriteLine($"Peak: {peakBPM} BPM at {peakTime.ToShortTimeString()}".PadRight(32));
-                Console.WriteLine($"RR: {string.Join(", ", heart.RRIntervals)}".PadRight(32));
+                if (heart.RRIntervals != null && heart.RRIntervals.Length > 0)
+                {
+                    Console.WriteLine($"RR: {string.Join(", ", heart.RRIntervals)}".PadRight(32));
+                } else
+                {
+                    Console.WriteLine("RR: N/A".PadRight(32));
+                }
+
 
                 lastUpdate = DateTime.Now;
                 File.WriteAllText("rate.txt", $"{currentHR}");
